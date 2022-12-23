@@ -1,0 +1,48 @@
+version: "3.7"
+services:
+  app:
+    build:
+      args:
+        user: user1
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    container_name: backend-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    command: sh -c "composer install --ignore-platform-reqs && php artisan key:generate"
+    networks:
+      - backoffice
+
+  nginx:
+    image: nginx:1.17-alpine
+    container_name: backend-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker-compose/nginx:/etc/nginx/conf.d
+    networks:
+      - backoffice
+
+  db:
+    image: mysql:5.7
+    container_name: backend-db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: backend_db
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_PASSWORD: secret
+      MYSQL_USER: dbuser
+      SERVICE_NAME: mysql
+    volumes:
+      - ./docker-compose/mysql:/docker-entrypoint-initdb.d
+    networks:
+      - backoffice
+
+networks:
+  backoffice:
+    driver: bridge
